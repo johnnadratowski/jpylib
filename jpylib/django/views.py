@@ -73,7 +73,7 @@ class AjaxView(base_views.View):
     def ajax_response(self, context, status=None, **kwargs):
         content_type = kwargs.get('content_type', 'application/json')
         try:
-            output = self.serialize(context)
+            output = self.serialize(context) if context is not None else None
             if status is None and context is None:
                 status = 204
             return HttpResponse(output, status=status, content_type=content_type, **kwargs)
