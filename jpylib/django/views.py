@@ -74,6 +74,8 @@ class AjaxView(base_views.View):
         content_type = kwargs.get('content_type', 'application/json')
         try:
             output = self.serialize(context)
+            if status is None and context is None:
+                status = 204
             return HttpResponse(output, status=status, content_type=content_type, **kwargs)
         except Exception as ex:
             logger.exception("An exception occurred serializing the response.")
