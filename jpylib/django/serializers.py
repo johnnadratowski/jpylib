@@ -8,8 +8,12 @@ from django.core.serializers.base import DeserializationError
 from django.core.serializers import json as django_json, serialize
 from django.core.serializers.python import Deserializer as PythonDeserializer
 from django.db.models import Model
+from django.db.models.fields import ManyToManyField
 from django.db.models.query import ValuesQuerySet, QuerySet
 from django.utils.encoding import smart_unicode
+
+
+from jpylib.django.utils.models import model_to_dict
 
 
 class JSONEncoder(django_json.DjangoJSONEncoder):
@@ -18,19 +22,13 @@ class JSONEncoder(django_json.DjangoJSONEncoder):
     addition to what the default django json encoder handles
     """
     def default(self, o):
-        # See "Date Time String Format" in the ECMA-262 specification.
+
         if isinstance(o, ValuesQuerySet):
-            return super(JSONEncoder, self).default(list(o))
+            return list(o)
         elif isinstance(o, QuerySet):
-            return serialize('json', o)
+            return [model_to_dict(m) for m in o]
         elif isinstance(o, Model):
-            # HACK: since the Django serializer doesn't handle model objects,
-            # we pass it in as a list.  Because of this, it returns a JSON list.
-            # Since it should only be one object, we should be ok just stripping
-            # out the JSON array chars.
-            ret_val = serialize('json', [o, ]).strip().lstrip('[').rstrip(']').strip()
-            assert ret_val.endswith('}'), "Error encoding JSON object - Model should be JSON dict"
-            return ret_val
+            return model_to_dict(o)
         else:
             return super(JSONEncoder, self).default(o)
 
