@@ -3,6 +3,35 @@ Contains functional programming style methods
 """
 from itertools import chain
 
+def is_list_type(o):
+    """
+    Returns true if this is a list type.
+    :param o: item to check if is list
+    :return: true if is list
+    """
+    return isinstance(o, (frozenset, list, set, tuple,))
+
+
+def list_to_dict(key, *l):
+    """
+    Transforms a list to a dict using key to determine what key to use
+    :param l: list to transform
+    :param key: If callable, gets call with item and should return key
+                Else, use index accessor with the value to get the key
+    :param recursive: True to transform lists recursively
+    :return: dict created from list
+
+    >>> list_to_dict(0, [['one', 'two', 'three'], ['four', 'five', 'six']])
+    {'four': ['four', 'five', 'six'], 'one': ['one', 'two', 'three']}
+    >>> list_to_dict('id', [{'id': 0, 'one': 1, 'two': 2, 'three': 3}, {'id': 10, 'four': 4, 'five': 5, 'six': 6}])
+    {0: {'three': 3, 'id': 0, 'two': 2, 'one': 1}, 10: {'four': 4, 'six': 6, 'five': 5, 'id': 10}}
+    """
+    output = {}
+    for item in chain(*l):
+        k = key(item) if callable(key) else item[key]
+        output[k] = item
+    return output
+
 
 def flatten_list(l):
     """
@@ -16,7 +45,7 @@ def flatten_list(l):
     """
     output = []
     for item in l:
-        if isinstance(item, (frozenset, list, set, tuple,)):
+        if is_list_type(item):
             output.extend(flatten_list(item))
         else:
             output.append(item)
