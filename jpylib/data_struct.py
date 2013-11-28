@@ -1,14 +1,12 @@
-'''
-Contains extension of python dictionary objects
-
-Created on Jan 11, 2012
-
-@author: john
-'''
+"""
+Contains python data structures
+"""
 import datetime, logging
 from decimal import Decimal
 
+
 logger = logging.getLogger(__name__)
+
 
 class DynamicObject(object):
     """
@@ -28,6 +26,8 @@ class DynamicObject(object):
             delattr(self, item)
         except AttributeError:
             pass
+O = DynamicObject
+
 
 class AttrDict(dict):
     """
@@ -71,6 +71,7 @@ class AttrDict(dict):
         you can call this method.
         """
         super(AttrDict, self).__setattr__(name, value)
+D = AttrDict
 
 class DataTable(object):
 
