@@ -1,22 +1,18 @@
 """
 Contains serializers for serializing data.
 """
-from StringIO import StringIO
+import datetime
+import decimal
 import json
 
-from django.core.serializers.base import DeserializationError
-from django.core.serializers import json as django_json, serialize
-from django.core.serializers.python import Deserializer as PythonDeserializer
 from django.db.models import Model
-from django.db.models.fields import ManyToManyField
 from django.db.models.query import ValuesQuerySet, QuerySet
-from django.utils.encoding import smart_unicode
-
+from django.utils.timezone import is_aware
 
 from jpylib.django.utils.models import model_to_dict
 
 
-class JSONEncoder(django_json.DjangoJSONEncoder):
+class JSONEncoder(json.JSONEncoder):
     """
     JSONEncoder subclass that handles Django model/queryset objects in
     addition to what the default django json encoder handles
@@ -29,6 +25,31 @@ class JSONEncoder(django_json.DjangoJSONEncoder):
             return [model_to_dict(m) for m in o]
         elif isinstance(o, Model):
             return model_to_dict(o)
+        elif isinstance(o, datetime.datetime):
+            r = o.isoformat()
+            if o.microsecond:
+                r = r[:23] + r[26:]
+            if r.endswith('+00:00'):
+                r = r[:-6] + 'Z'
+            return r
+        elif isinstance(o, datetime.date):
+            return o.isoformat()
+        elif isinstance(o, datetime.time):
+            if is_aware(o):
+                raise ValueError("JSON can't represent timezone-aware times.")
+            r = o.isoformat()
+            if o.microsecond:
+                r = r[:12]
+            return r
+        elif isinstance(o, decimal.Decimal):
+            return str(o)
+        elif callable(o):
+            try:
+                return o()
+            except:
+                # If we can't get data out of the callable,
+                # just return the function name
+                return o.__name__
         else:
             return super(JSONEncoder, self).default(o)
 
@@ -61,36 +82,3 @@ class DeserializedObject(object):
         self.wrapped.m2m_data = None
 
 
-# def deserialize(stream_or_string, **options):
-#     """
-#     Deserializer that is a bit more forgiving than the default Django one.  Also
-#     allows for passing a 'model' into options that defines the model to deserialize
-#     to.
-#     """
-#     if isinstance(stream_or_string, basestring):
-#         stream = StringIO(stream_or_string)
-#     else:
-#         stream = stream_or_string
-#     try:
-#         output = json.load(stream)
-#         if isinstance(output, dict):
-#             output = [output, ]
-#
-#         assert isinstance(output, list), "Cannot serialize output of type %s" % type(output)
-#
-#         base_model = options.get('model')
-#         if 'model' in options:
-#             for model in output:
-#                 model['model'] = smart_unicode(options['model']._meta)
-#
-#         import ipdb; ipdb.set_trace()
-#
-#         for obj in output:
-#
-#         for obj in PythonDeserializer(output, **options):
-#             yield DeserializedObject(obj)
-#     except GeneratorExit:
-#         raise
-#     except Exception, e:
-#         # Map to deserializer error
-#         raise DeserializationError(e)
